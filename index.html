@@ -6,14 +6,13 @@
 <title>games · 小游戏与小工具合集</title>
 <style>
   :root {
-    --bg: #0f1117;
-    --card: #1a1d27;
-    --border: #2a2e3b;
-    --text: #e8eaf0;
+    --bg: #f3f5fb;
+    --card: #ffffff;
+    --border: #e6e9f2;
+    --text: #23283b;
     --muted: #8a91a0;
-    --accent: #6f8cff;
-    --green: #3ddc84;
-    --amber: #ffb454;
+    --accent: #4f6ef7;
+    --accent2: #9b6bff;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -21,98 +20,156 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-    padding: 40px 20px;
   }
-  .wrap { max-width: 860px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 40px; }
-  header h1 {
+  .hero {
+    text-align: center;
+    padding: 56px 20px 36px;
+    background: linear-gradient(180deg, #eef1ff 0%, rgba(243,245,251,0) 100%);
+  }
+  .hero h1 {
     font-size: 34px;
     font-weight: 800;
-    background: linear-gradient(135deg, #6f8cff, #a78bfa);
+    letter-spacing: 1px;
+  }
+  .hero h1 .grad {
+    background: linear-gradient(135deg, #4f6ef7, #9b6bff);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
-  header p { color: var(--muted); margin-top: 8px; font-size: 15px; }
+  .hero p { color: var(--muted); margin-top: 12px; font-size: 14px; }
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 56px;
+    margin-top: 26px;
+  }
+  .stats .num {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .stats .lbl { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px 60px; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 34px 0 16px;
+  }
+  .section-head .bar {
+    width: 4px;
+    height: 20px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+  .section-head h2 { font-size: 18px; font-weight: 700; }
+  .section-head .count { color: var(--muted); font-size: 12px; }
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
     gap: 16px;
   }
   .card {
+    position: relative;
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 12px;
     padding: 20px;
     text-decoration: none;
     color: var(--text);
-    transition: transform .15s, border-color .15s;
+    transition: transform .15s, box-shadow .15s;
     display: block;
   }
-  .card:hover { transform: translateY(-3px); border-color: var(--accent); }
-  .card .icon { font-size: 28px; margin-bottom: 10px; }
-  .card h3 { font-size: 17px; margin-bottom: 6px; }
-  .card p { color: var(--muted); font-size: 13px; line-height: 1.5; }
-  .tag {
-    display: inline-block;
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    margin-top: 10px;
-    background: rgba(111,140,255,.15);
-    color: var(--accent);
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(79,110,247,.12);
+    border-color: #c9d4ff;
   }
-  .tag.green { background: rgba(61,220,132,.15); color: var(--green); }
-  .tag.amber { background: rgba(255,180,84,.15); color: var(--amber); }
+  .pill {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    color: #fff;
+    background: var(--accent);
+  }
+  .pill.blue { background: #4f6ef7; }
+  .pill.green { background: #22b573; }
+  .pill.purple { background: #9b6bff; }
+  .card .icon { font-size: 26px; margin-bottom: 12px; }
+  .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; padding-right: 52px; }
+  .card p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+  .card .src { color: #b0b6c3; font-size: 11px; margin-top: 14px; }
   footer {
     text-align: center;
     color: var(--muted);
     font-size: 13px;
-    margin-top: 48px;
+    padding: 24px 0 40px;
   }
-  footer a { color: var(--accent); }
+  footer a { color: var(--accent); text-decoration: none; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>games</h1>
-    <p>个人小游戏与小工具合集 · 单文件、零依赖、开箱即用</p>
-  </header>
+  <div class="hero">
+    <h1>小游戏<span class="grad">与小工具</span>合集</h1>
+    <p>单文件 HTML · 零依赖 · 双击即用 —— 家庭与个人的轻量应用收藏</p>
+    <div class="stats">
+      <div><div class="num">4</div><div class="lbl">作品总数</div></div>
+      <div><div class="num">2</div><div class="lbl">应用方向</div></div>
+    </div>
+  </div>
 
-  <div class="grid">
-    <a class="card" href="ant-blocks.html">
-      <div class="icon">🐜</div>
-      <h3>蚂蚁搬方块</h3>
-      <p>搬运/消除类小游戏，双击即玩。</p>
-      <span class="tag green">小游戏</span>
-    </a>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="bar"></div>
+      <h2>小游戏</h2>
+      <span class="count">2 个</span>
+    </div>
+    <div class="grid">
+      <a class="card" href="ant-blocks.html">
+        <span class="pill blue">网页</span>
+        <div class="icon">🐜</div>
+        <h3>蚂蚁搬方块</h3>
+        <p>搬运/消除类小游戏，打开即玩，无需安装。</p>
+        <div class="src">纯网页（零依赖）</div>
+      </a>
+      <a class="card" href="block-puzzle-ocean.html">
+        <span class="pill blue">网页</span>
+        <div class="icon">🌊</div>
+        <h3>方块拼图 · 海洋历险</h3>
+        <p>9×9 拖拽消除 + 像素画闯关，本地存档。</p>
+        <div class="src">纯网页（零依赖）</div>
+      </a>
+    </div>
 
-    <a class="card" href="block-puzzle-ocean.html">
-      <div class="icon">🌊</div>
-      <h3>方块拼图 · 海洋历险</h3>
-      <p>9×9 拖拽消除 + 像素画闯关，本地存档。</p>
-      <span class="tag green">小游戏</span>
-    </a>
-
-    <a class="card" href="family-memory.html">
-      <div class="icon">🗂️</div>
-      <h3>家庭物品位置备忘</h3>
-      <p>门禁钥匙、充电宝… 放哪了？录入位置一键查找。</p>
-      <span class="tag">工具</span>
-    </a>
-
-    <a class="card" href="https://github.com/hebugui/games/tree/master/video-translator">
-      <div class="icon">🎬</div>
-      <h3>视频实时翻译</h3>
-      <p>Edge 视频实时翻译：扬声器音频识别 + 字幕叠加。</p>
-      <span class="tag amber">工具</span>
-    </a>
+    <div class="section-head">
+      <div class="bar"></div>
+      <h2>实用工具</h2>
+      <span class="count">2 个</span>
+    </div>
+    <div class="grid">
+      <a class="card" href="family-memory.html">
+        <span class="pill green">工具</span>
+        <div class="icon">🗂️</div>
+        <h3>家庭物品位置备忘</h3>
+        <p>门禁钥匙、充电宝… 放哪了？录入位置一键查找，数据本地存储。</p>
+        <div class="src">纯网页（零依赖）</div>
+      </a>
+      <a class="card" href="https://github.com/hebugui/games/tree/master/video-translator">
+        <span class="pill purple">开源</span>
+        <div class="icon">🎬</div>
+        <h3>视频实时翻译</h3>
+        <p>Edge 视频实时翻译：扬声器音频识别 + WebSocket 推送 + 字幕叠加。</p>
+        <div class="src">Python + 浏览器扩展</div>
+      </a>
+    </div>
   </div>
 
   <footer>
     源码见 <a href="https://github.com/hebugui/games">github.com/hebugui/games</a>
   </footer>
-</div>
 </body>
 </html>
