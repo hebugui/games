@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>视频实时翻译</title>
+  <style>
+    body { width: 220px; font-family: "Microsoft YaHei", sans-serif; padding: 12px; margin: 0; }
+    h3 { margin: 0 0 10px; font-size: 15px; }
+    .row { margin: 8px 0; font-size: 13px; }
+    select { width: 100%; padding: 4px; }
+    .hint { color: #888; font-size: 11px; margin-top: 10px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <h3>视频实时翻译字幕</h3>
+  <div class="row">
+    <label>源语言</label>
+    <select id="srcLang">
+      <option value="">自动检测</option>
+      <option value="en">英语</option>
+      <option value="ja">日语</option>
+    </select>
+  </div>
+  <div class="row">
+    <label>目标语言</label>
+    <select id="dstLang">
+      <option value="zh">中文</option>
+    </select>
+  </div>
+  <div class="hint">
+    需先在本机运行转写后台: python transcriber.py<br/>
+    并启用"立体声混音"输入设备。
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

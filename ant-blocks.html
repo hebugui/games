@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#9fd9ff">
+<title>蚂蚁搬方块 · 玩到起飞</title>
+<style>
+  /* ========== 全局与Q版马卡龙风格 ========== */
+  :root{ --ink:#3c6e91; }
+  *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ min-height:100%; }
+  body{
+    font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(180deg,#9fd9ff 0%, #c9ecff 55%, #eafaff 100%);
+    display:flex; justify-content:center;
+    touch-action: manipulation;
+    user-select:none; -webkit-user-select:none;
+    color:var(--ink);
+  }
+  #app{ width:100%; max-width:470px; padding:10px 12px 22px; }
+
+  /* ========== 顶部信息栏 ========== */
+  #hud{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .pill{ background:#fff; border-radius:999px; padding:6px 14px; font-weight:800; font-size:14px;
+         box-shadow:0 3px 0 rgba(110,160,205,.35); white-space:nowrap; }
+  .pill b{ color:#ff7a1f; font-size:16px; }
+  #btnGear{ width:40px; height:40px; border-radius:50%; border:none; background:#fff; font-size:19px;
+            box-shadow:0 3px 0 rgba(110,160,205,.35); cursor:pointer; flex:none; line-height:1; }
+  #btnGear:active{ transform:translateY(2px); box-shadow:0 1px 0 rgba(110,160,205,.35); }
+  #hud .spacer{ flex:1; }
+
+  /* ========== 画布舞台与连击横幅 ========== */
+  #stage{ position:relative; }
+  #cv{ display:block; width:100%; height:auto; }
+  #combo{
+    position:absolute; top:10px; left:50%;
+    transform:translateX(-50%) rotate(-3deg) scale(.6);
+    font-size:clamp(24px,7vw,34px); font-weight:900; font-style:italic; color:#ffb300; letter-spacing:1px;
+    text-shadow:2px 2px 0 #fff,-2px 2px 0 #fff,2px -2px 0 #fff,-2px -2px 0 #fff,0 4px 8px rgba(230,120,0,.45);
+    pointer-events:none; z-index:5; opacity:0; white-space:nowrap;
+    transition:transform .18s cubic-bezier(.2,1.6,.4,1), opacity .18s;
+  }
+  #combo.show{ opacity:1; transform:translateX(-50%) rotate(-3deg) scale(1); }
+  #combo.pop{ animation:comboPop .28s cubic-bezier(.2,1.8,.4,1); }
+  @keyframes comboPop{
+    0%{ transform:translateX(-50%) rotate(-3deg) scale(1.5); }
+    100%{ transform:translateX(-50%) rotate(-3deg) scale(1); }
+  }
+
+  /* ========== 候选小队按钮区 ========== */
+  #pool{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:12px; }
+  .squad{
+    border:none; cursor:pointer; border-radius:16px; padding:11px 0 8px;
+    background:var(--c); color:var(--t,#fff); font-weight:900; font-size:clamp(18px,5.4vw,24px); line-height:1;
+    text-shadow:0 1px 0 rgba(0,0,0,.15);
+    box-shadow:0 5px 0 var(--d), 0 9px 14px rgba(50,100,160,.18);
+    transition:transform .06s, box-shadow .06s, filter .15s, opacity .3s;
+    animation:sIn .25s backwards;
+  }
+  .squad .num{ display:block; }
+  .squad .a{ display:block; font-size:11px; margin-top:4px; opacity:.9; }
+  .squad:hover{ filter:brightness(1.08); transform:translateY(-2px); }
+  .squad:active{ transform:translateY(4px); box-shadow:0 1px 0 var(--d), 0 3px 6px rgba(50,100,160,.15); }
+  .squad.used{ opacity:.25; filter:grayscale(.7); pointer-events:none; }
+  .squad.shake{ animation:shake .3s; }
+  @keyframes sIn{ from{ transform:scale(.5); opacity:0; } }
+  @keyframes shake{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-5px); } 75%{ transform:translateX(5px); } }
+  .hint{ text-align:center; font-size:12px; font-weight:700; color:#6f9cbf; margin-top:10px; }
+
+  /* ========== 底部功能按钮 ========== */
+  #controls{ display:flex; justify-content:center; gap:26px; margin-top:10px; }
+  .ctl{
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    border:none; cursor:pointer; background:#fff; border-radius:18px; padding:9px 18px;
+    font-weight:800; font-size:14px; color:var(--ink);
+    box-shadow:0 4px 0 #bcd8ea, 0 8px 12px rgba(60,120,170,.15);
+    transition:transform .06s, box-shadow .06s, background .2s;
+  }
+  .ctl .ico{ font-size:22px; font-style:normal; line-height:1; }
+  .ctl:hover{ transform:translateY(-2px); }
+  .ctl:active{ transform:translateY(3px); box-shadow:0 1px 0 #bcd8ea; }
+  #btnSpeed.on{ background:#fff3bf; }
+  #btnSpeed .st{ color:#ff7a1f; }
+  #btnShuffle.pulse{ animation:pulse .8s infinite; }
+  @keyframes pulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.1); } }
+
+  /* ========== 通关弹窗 ========== */
+  #modal{ position:fixed; inset:0; background:rgba(20,50,90,.5); display:none;
+          align-items:center; justify-content:center; z-index:60; }
+  #modal.show{ display:flex; }
+  .card{
+    position:relative; background:#fff; border-radius:26px; padding:30px 26px 24px; text-align:center;
+    width:min(86vw,340px); box-shadow:0 20px 50px rgba(0,40,90,.35); overflow:hidden;
+    animation:cardIn .4s cubic-bezier(.2,1.5,.4,1);
+  }
+  @keyframes cardIn{ from{ transform:scale(.5) translateY(60px); opacity:0; } }
+  .card h2{ font-size:26px; color:#ff7a1f; margin:4px 0; }
+  .card .stars{ font-size:30px; letter-spacing:6px; }
+  .card .sub{ font-size:13px; color:#6f9cbf; font-weight:700; margin-bottom:14px; }
+  .card .stats{ font-size:13px; color:#5b7f9c; font-weight:700; margin-bottom:18px; }
+  .card .stats b{ color:#ff7a1f; }
+  .card .row{ display:flex; gap:12px; justify-content:center; }
+  .btn{
+    border:none; cursor:pointer; border-radius:999px; padding:12px 22px; font-weight:900; font-size:16px; color:#fff;
+    box-shadow:0 4px 0 rgba(0,0,0,.15); transition:transform .06s;
+  }
+  .btn:active{ transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.15); }
+  .btn.pri{ background:#58c15e; }
+  .btn.sec{ background:#5aa7ff; }
+  .confetti{ position:absolute; top:-20px; width:9px; height:14px; border-radius:2px; opacity:.95;
+             animation:fall linear forwards; z-index:1; }
+  @keyframes fall{ to{ transform:translateY(110vh) rotate(720deg); opacity:.9; } }
+
+  /* ========== 轻提示 ========== */
+  #toast{
+    position:fixed; top:12%; left:50%; transform:translateX(-50%) translateY(-8px);
+    background:rgba(40,60,80,.88); color:#fff; font-weight:700; font-size:14px;
+    padding:9px 18px; border-radius:999px; opacity:0; pointer-events:none; transition:all .25s; z-index:70;
+    max-width:80vw; text-align:center;
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- 顶部：关卡标题 / 剩余方块 / 设置 -->
+  <header id="hud">
+    <button id="btnGear" title="重新开始本关">⚙️</button>
+    <div class="pill" id="levelPill">第 1 关</div>
+    <div class="pill">剩余 <b id="remainNum">0</b> 块</div>
+    <div class="spacer"></div>
+  </header>
+
+  <!-- 上半：像素画布（含蚂蚁活动区） -->
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="combo">连击 ×<span id="comboN">0</span></div>
+  </div>
+
+  <!-- 底部：候选蚂蚁小队按钮池 -->
+  <div id="pool"></div>
+  <p class="hint">点击色块按钮，派出蚂蚁小队搬走同色连通方块</p>
+
+  <!-- 最底部：功能按钮 -->
+  <div id="controls">
+    <button class="ctl" id="btnSpeed"><i class="ico">⚡</i><span>3倍速 <b class="st" id="speedState">关</b></span></button>
+    <button class="ctl" id="btnShuffle"><i class="ico">🔄</i><span>重排</span></button>
+  </div>
+</div>
+
+<!-- 通关弹窗 -->
+<div id="modal">
+  <div class="card">
+    <div class="stars">⭐⭐⭐</div>
+    <h2>🎉 通关成功！</h2>
+    <p class="sub">所有像素方块都被蚂蚁搬走啦</p>
+    <div class="stats">⏱️ 用时 <b id="statTime">--</b> ｜ 🐜 出动 <b id="statSquad">0</b> 队 ｜ 🔥 连击 <b id="statCombo">×0</b></div>
+    <div class="row">
+      <button class="btn pri" id="btnAgain">再玩一次</button>
+      <button class="btn sec" id="btnNext">下一关</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ==================== 调色板（c主色 l高光 d暗边 t文字色 name中文名） ==================== */
+const PALETTE={
+  R:{c:'#ff6b6b',l:'#ffa3a3',d:'#e04f4f',t:'#fff',name:'红'},
+  O:{c:'#ff9f43',l:'#ffc57d',d:'#ef8318',t:'#fff',name:'橙'},
+  Y:{c:'#ffd93d',l:'#ffe98a',d:'#f0b429',t:'#7a5c00',name:'黄'},
+  G:{c:'#66c96a',l:'#9ce79f',d:'#4caf50',t:'#fff',name:'绿'},
+  B:{c:'#5aa7ff',l:'#8ec2ff',d:'#3f86e8',t:'#fff',name:'蓝'},
+  P:{c:'#b07ce8',l:'#cfa5f5',d:'#9257d0',t:'#fff',name:'紫'},
+  C:{c:'#ffe8c2',l:'#fff4dc',d:'#f0cd8f',t:'#8a6d3b',name:'米'},
+  K:{c:'#7a5140',l:'#9c705a',d:'#5d3b2e',t:'#fff',name:'棕'},
+  W:{c:'#ffffff',l:'#ffffff',d:'#cfe0ec',t:'#5b7f9c',name:'白'},
+};
+
+/* ==================== 内置测试关卡：蘑菇小屋像素画（'.'为空） ==================== */
+const LEVEL_DATA=[
+"....RRRRRRRR....",
+"..RRRWWRRWWRRR..",
+".RRRRWWRRWWRRRR.",
+"RRRWWRRRRRRWWRRR",
+"RRRRRRRWWRRRRRRR",
+"RRRRRRRRRRRRRRRR",
+"RRRRRRRRRRRRRRRR",
+".OOOOOOOOOOOOOO.",
+"..OOOOOOOOOOOO..",
+".....CCCCCC.....",
+".....CKCCKC.....",
+".....CCCCCC.....",
+".....CCKKCC.....",
+".....CCCCCC.....",
+"GG..G.GGGG.G..GG",
+];
+
+/* ==================== 画布几何（逻辑坐标固定，CSS 等比缩放适配移动端） ==================== */
+const COLS=16, ROWS=15, CELL=21, PAD=6, FT=12, LW=400;
+const GX=(LW-COLS*CELL)/2, GY=34;                                  // 网格左上角
+const FRAME={x:GX-PAD-FT, y:GY-PAD-FT, w:COLS*CELL+2*(PAD+FT), h:ROWS*CELL+2*(PAD+FT)}; // 奶油外框
+const HOLE={x:LW/2, y:FRAME.y+FRAME.h+92};                         // 蚁穴（蚂蚁的家）
+const LH=HOLE.y+58;                                                // 画布逻辑高度
+const ANT_SPEED=135;                                               // 蚂蚁基础速度 px/s
+
+/* ==================== 游戏状态 ==================== */
+let levelData=LEVEL_DATA, levelIdx=1;
+let grid=[], pool=[], ants=[];
+let claimed=new Set();        // 已被在途小队认领的格子（key=r*COLS+c）
+let remaining=0, combo=0, maxCombo=0, missions=0;
+let speedMult=1, won=false, startTs=null;
+
+/* ==================== DOM 引用 ==================== */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const poolEl=document.getElementById('pool'), modal=document.getElementById('modal'), toastEl=document.getElementById('toast');
+const comboEl=document.getElementById('combo'), comboN=document.getElementById('comboN');
+const remainNum=document.getElementById('remainNum'), levelPill=document.getElementById('levelPill');
+const btnShuffle=document.getElementById('btnShuffle'), btnSpeed=document.getElementById('btnSpeed');
+const speedState=document.getElementById('speedState');
+
+/* ==================== 小工具 ==================== */
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+function angLerp(a,b,t){ const d=((b-a+Math.PI*3)%(Math.PI*2))-Math.PI; return a+d*t; }
+function rr(x,y,w,h,r){ // 圆角矩形路径
+  r=Math.min(r,w/2,h/2); ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);     ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+/* 轻量音效（WebAudio，无外部资源） */
+let AC=null;
+function beep(f,d,type,g){
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended')AC.resume();
+    const o=AC.createOscillator(), v=AC.createGain();
+    o.type=type||'square'; o.frequency.value=f;
+    v.gain.setValueAtTime(g||.04,AC.currentTime);
+    v.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);
+    o.connect(v).connect(AC.destination); o.start(); o.stop(AC.currentTime+d);
+  }catch(e){}
+}
+
+/* ==================== 画布 DPR 适配 ==================== */
+function fitDPR(){
+  const dpr=Math.min(2.5, window.devicePixelRatio||1);
+  cv.width=LW*dpr; cv.height=LH*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+
+/* ==================== 关卡装载 / 重置 ==================== */
+function resetLevel(){
+  grid=levelData.map(s=>s.split('').map(ch=>ch==='.'?null:ch));
+  claimed=new Set(); ants.length=0;
+  remaining=0;
+  grid.forEach(row=>row.forEach(c=>{ if(c)remaining++; }));
+  combo=0; maxCombo=0; missions=0; won=false; startTs=null;
+  genPool(); refreshHUD(); updateCombo(false); hideModal();
+}
+function refreshHUD(){
+  remainNum.textContent=remaining;
+  levelPill.textContent='第 '+levelIdx+' 关';
+}
+
+/* ==================== 连击横幅 ==================== */
+function updateCombo(pop){
+  comboN.textContent=combo;
+  if(combo>=2){
+    comboEl.classList.add('show');
+    if(pop){ comboEl.classList.remove('pop'); void comboEl.offsetWidth; comboEl.classList.add('pop'); }
+  }else comboEl.classList.remove('show');
+}
+
+/* ==================== 蚂蚁小队按钮池：按剩余方块按色生成，保证总量足够通关 ==================== */
+function genPool(){
+  const need={};
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const col=grid[r][c];
+    if(col&&!claimed.has(r*COLS+c)) need[col]=(need[col]||0)+1;
+  }
+  pool=[];
+  for(const entry of Object.entries(need)){
+    const col=entry[0]; let left=entry[1], guard=0;
+    while(left>0&&guard++<40){ // 随机切成若干支小队
+      const take=Math.max(1,Math.min(left,Math.round(6+Math.random()*Math.max(8,left*0.45))));
+      pool.push({color:col,n:take,used:false});
+      left-=take;
+    }
+  }
+  shuffle(pool);
+  renderPool();
+}
+function renderPool(){
+  poolEl.innerHTML='';
+  pool.forEach((b,i)=>{
+    const p=PALETTE[b.color];
+    const btn=document.createElement('button');
+    btn.className='squad'; btn.type='button';
+    btn.style.setProperty('--c',p.c);
+    btn.style.setProperty('--d',p.d);
+    btn.style.setProperty('--t',p.t);
+    btn.style.animationDelay=(i*25)+'ms';
+    btn.innerHTML='<span class="num">'+b.n+'</span><span class="a">🐜×'+Math.max(1,Math.min(5,Math.round(b.n/6)))+'</span>';
+    btn.addEventListener('click',()=>onSquad(i,btn));
+    poolEl.appendChild(btn);
+  });
+}
+
+/* ==================== 连通块查找：DFS 找某颜色所有未认领连通区域 ==================== */
+function componentsOf(color){
+  const comps=[], seen=new Set();
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const k0=r*COLS+c;
+    if(grid[r][c]!==color||claimed.has(k0)||seen.has(k0))continue;
+    const comp=[], stack=[[r,c]]; seen.add(k0);
+    while(stack.length){
+      const [cr,cc]=stack.pop(); comp.push([cr,cc]);
+      for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const nr=cr+dr, nc=cc+dc;
+        if(nr<0||nc<0||nr>=ROWS||nc>=COLS)continue;
+        const k2=nr*COLS+nc;
+        if(grid[nr][nc]===color&&!claimed.has(k2)&&!seen.has(k2)){ seen.add(k2); stack.push([nr,nc]); }
+      }
+    }
+    comps.push(comp);
+  }
+  return comps;
+}
+
+/* ==================== 出动小队：认领方块 → 分组生成蚂蚁 ==================== */
+function startMission(color,n,btn){
+  const comps=componentsOf(color);
+  if(!comps.length){ // 该颜色已无可搬方块：不消耗按钮
+    toast(PALETTE[color].name+'色方块已经搬完啦');
+    combo=0; updateCombo(false);
+    btn.classList.remove('shake'); void btn.offsetWidth; btn.classList.add('shake');
+    beep(180,.12,'sawtooth',.04);
+    return false;
+  }
+  comps.sort((a,b)=>b.length-a.length);
+  const cells=[];
+  outer:
+  for(const comp of comps)for(const cell of comp){ cells.push(cell); if(cells.length>=n)break outer; }
+  cells.forEach(([r,c])=>claimed.add(r*COLS+c)); // 立即认领，防止后续按钮重复选取
+  cells.sort((a,b)=>b[0]-a[0]||a[1]-b[1]);       // 先搬离洞口近的（靠下的）
+
+  const antN=Math.max(1,Math.min(5,Math.round(cells.length/6)));
+  const groups=Array.from({length:antN},()=>[]);
+  cells.forEach((cell,i)=>groups[i%antN].push(cell));
+  groups.forEach((g,i)=>{ if(g.length) ants.push(makeAnt(g,i*0.22,i,antN)); });
+
+  missions++; combo++; maxCombo=Math.max(maxCombo,combo); updateCombo(true);
+  if(!startTs)startTs=performance.now();
+  beep(720,.07,'square',.045);
+
+  if(pool.every(x=>x.used)&&remaining>0&&!won){
+    toast('蚂蚁小队用完啦，点「重排」再来一队！');
+    btnShuffle.classList.add('pulse');
+  }
+  return true;
+}
+function onSquad(i,btn){
+  if(won)return;
+  const b=pool[i];
+  if(b.used||!b)return;
+  if(startMission(b.color,b.n,btn)) b.used=true;
+}
+
+/* ==================== 蚂蚁个体：出生 → 巡回搬块 → 回洞消失 ==================== */
+function makeAnt(cells,delay,idx,antN){
+  const pts=cells.map(([r,c])=>({x:GX+c*CELL+CELL/2, y:GY+r*CELL+CELL/2, r, c, color:grid[r][c]}));
+  // 贪心最近邻规划巡回路线
+  let cur={x:HOLE.x,y:HOLE.y};
+  const route=[], rest=[...pts];
+  while(rest.length){
+    let bi=0,bd=Infinity;
+    rest.forEach((p,i)=>{ const d=(p.x-cur.x)**2+(p.y-cur.y)**2; if(d<bd){bd=d;bi=i;} });
+    const p=rest.splice(bi,1)[0]; route.push(p); cur=p;
+  }
+  return {
+    x:HOLE.x+(idx-(antN-1)/2)*16, y:HOLE.y,   // 从蚁穴错开出生
+    face:-Math.PI/2, state:'wait', t:delay,
+    path:[...route,{x:HOLE.x,y:HOLE.y}],      // 路线：各方块 → 回洞
+    cellN:route.length, pi:0,
+    stack:[], phase:Math.random()*7, seed:Math.random()*10, scale:0, dead:false,
+  };
+}
+function stepAnt(a,sdt){
+  a.phase+=sdt*16;
+  if(a.state==='wait'){ a.t-=sdt; a.scale=Math.min(1,a.scale+sdt*5); if(a.t<=0)a.state='walk'; return; }
+  if(a.state==='sink'){ a.t-=sdt; a.scale=Math.max(0,a.t/0.25); if(a.t<=0)a.dead=true; return; }
+  a.scale=Math.min(1,a.scale+sdt*5);
+  if(a.state==='pickup'){ a.t-=sdt; if(a.t<=0){ a.state='walk'; a.pi++; } return; }
+  // 行走
+  const tgt=a.path[a.pi];
+  const dx=tgt.x-a.x, dy=tgt.y-a.y, d=Math.hypot(dx,dy), step=ANT_SPEED*sdt;
+  if(d<=step){
+    a.x=tgt.x; a.y=tgt.y;
+    if(a.pi<a.cellN){ pickBlock(a,a.path[a.pi]); a.state='pickup'; a.t=0.12; }
+    else{ a.state='sink'; a.t=0.25; beep(300,.08,'triangle',.03); }
+  }else{
+    a.x+=dx/d*step; a.y+=dy/d*step;
+    a.face=angLerp(a.face,Math.atan2(dy,dx),Math.min(1,sdt*10));
+  }
+}
+/* 搬起方块：画布置空 + 计数 + 连击/音效 */
+function pickBlock(a,p){
+  if(!grid[p.r][p.c])return;
+  a.stack.push(p.color);
+  grid[p.r][p.c]=null;
+  claimed.delete(p.r*COLS+p.c);
+  remaining--;
+  refreshHUD();
+  beep(880+Math.random()*160,.05,'triangle',.045);
+  if(navigator.vibrate)navigator.vibrate(8);
+  checkWin();
+}
+/* 通关判定：画布清空且没有在途认领 */
+function checkWin(){
+  if(won||remaining>0||claimed.size>0)return;
+  won=true;
+  setTimeout(showWin,800/Math.min(3,speedMult));
+}
+function showWin(){
+  const secs=startTs?Math.round((performance.now()-startTs)/1000):0;
+  document.getElementById('statTime').textContent=secs+' 秒';
+  document.getElementById('statSquad').textContent=missions;
+  document.getElementById('statCombo').textContent='×'+maxCombo;
+  spawnConfetti();
+  modal.classList.add('show');
+  [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.18,'square',.05),i*110));
+}
+function hideModal(){ modal.classList.remove('show'); }
+function spawnConfetti(){
+  modal.querySelectorAll('.confetti').forEach(e=>e.remove());
+  const colors=['#ff6b6b','#ffd93d','#66c96a','#5aa7ff','#b07ce8','#ff9f43'];
+  for(let i=0;i<18;i++){
+    const s=document.createElement('span');
+    s.className='confetti';
+    s.style.left=(Math.random()*100)+'vw';
+    s.style.background=colors[i%colors.length];
+    s.style.animationDuration=(1.4+Math.random()*1.2)+'s';
+    s.style.animationDelay=(Math.random()*.5)+'s';
+    s.style.transform='rotate('+(Math.random()*360)+'deg)';
+    modal.appendChild(s);
+  }
+}
+
+/* ==================== 随机关卡生成（下一关）：对称随机游走色块 + 邻色填补 ==================== */
+function randomLevel(rows,cols){
+  const chosen=shuffle(['R','O','Y','G','B','P','K']).slice(0,4+((Math.random()*3)|0));
+  const g=Array.from({length:rows},()=>Array(cols).fill(null));
+  const share=Math.floor(rows*cols/chosen.length);
+  for(const col of chosen){
+    let placed=0, guard=0;
+    while(placed<share&&guard++<4000){
+      let cr=(Math.random()*rows)|0, cc=(Math.random()*cols)|0;
+      if(g[cr][cc])continue;
+      const len=8+((Math.random()*20)|0);
+      for(let i=0;i<len&&placed<share;i++){
+        if(!g[cr][cc]){
+          g[cr][cc]=col; placed++;
+          const mc=cols-1-cc;                        // 左右镜像对称
+          if(mc!==cc&&!g[cr][mc]){ g[cr][mc]=col; placed++; }
+        }
+        const d=[[1,0],[-1,0],[0,1],[0,-1]][(Math.random()*4)|0];
+        cr=Math.min(rows-1,Math.max(0,cr+d[0]));
+        cc=Math.min(cols-1,Math.max(0,cc+d[1]));
+      }
+    }
+  }
+  // 剩余空格用邻居色填补，保证全图可清空（必定可通关）
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    if(g[r][c])continue;
+    const nb=[];
+    for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const r2=r+dr,c2=c+dc;
+      if(r2>=0&&c2>=0&&r2<rows&&c2<cols&&g[r2][c2])nb.push(g[r2][c2]);
+    }
+    g[r][c]=nb.length?nb[(Math.random()*nb.length)|0]:chosen[(Math.random()*chosen.length)|0];
+  }
+  return g.map(row=>row.join(''));
+}
+
+/* ==================== 渲染 ==================== */
+function draw(){
+  ctx.clearRect(0,0,LW,LH);
+  drawFrame();
+  drawCells();
+  drawHole();
+  for(const a of [...ants].sort((x,y)=>x.y-y.y)) drawAnt(a);
+}
+/* 奶油色像素画外框 */
+function drawFrame(){
+  rr(FRAME.x-2,FRAME.y+4,FRAME.w,FRAME.h,20); ctx.fillStyle='rgba(40,90,150,.18)'; ctx.fill();
+  rr(FRAME.x,FRAME.y,FRAME.w,FRAME.h,18); ctx.fillStyle='#ffcf70'; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle='rgba(255,255,255,.55)';
+  rr(FRAME.x+3,FRAME.y+3,FRAME.w-6,FRAME.h-6,14); ctx.stroke();
+  rr(GX-PAD,GY-PAD,COLS*CELL+PAD*2,ROWS*CELL+PAD*2,10); ctx.fillStyle='#fffdf4'; ctx.fill();
+}
+/* 网格与像素方块 */
+function drawCells(){
+  const gw=COLS*CELL, gh=ROWS*CELL;
+  ctx.fillStyle='rgba(150,190,225,.07)';
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) ctx.fillRect(GX+c*CELL+1,GY+r*CELL+1,CELL-2,CELL-2);
+  ctx.strokeStyle='rgba(130,170,210,.18)'; ctx.lineWidth=1;
+  ctx.beginPath();
+  for(let c=0;c<=COLS;c++){ ctx.moveTo(GX+c*CELL+.5,GY); ctx.lineTo(GX+c*CELL+.5,GY+gh); }
+  for(let r=0;r<=ROWS;r++){ ctx.moveTo(GX,GY+r*CELL+.5); ctx.lineTo(GX+gw,GY+r*CELL+.5); }
+  ctx.stroke();
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const col=grid[r][c];
+    if(col)drawBlock(GX+c*CELL,GY+r*CELL,col);
+  }
+}
+/* 单个方块：主色 + 高光/暗边营造像素立体感 */
+function drawBlock(x,y,col){
+  const p=PALETTE[col];
+  rr(x+1,y+1,CELL-2,CELL-2,4); ctx.fillStyle=p.c; ctx.fill();
+  ctx.fillStyle=p.l;
+  ctx.fillRect(x+3,y+3,CELL-6,3); ctx.fillRect(x+3,y+3,3,CELL-6);
+  ctx.fillStyle=p.d;
+  ctx.fillRect(x+3,y+CELL-6,CELL-6,3); ctx.fillRect(x+CELL-6,y+3,3,CELL-6);
+  rr(x+1,y+1,CELL-2,CELL-2,4);
+  ctx.globalAlpha=.45; ctx.strokeStyle=p.d; ctx.lineWidth=1; ctx.stroke(); ctx.globalAlpha=1;
+}
+/* 蚁穴 */
+function drawHole(){
+  ctx.fillStyle='rgba(0,0,0,.15)';
+  ctx.beginPath(); ctx.ellipse(HOLE.x,HOLE.y+3,30,12,0,0,7); ctx.fill();
+  ctx.fillStyle='#7a5a3a';
+  ctx.beginPath(); ctx.ellipse(HOLE.x,HOLE.y,30,12,0,0,7); ctx.fill();
+  ctx.fillStyle='#3f2a18';
+  ctx.beginPath(); ctx.ellipse(HOLE.x,HOLE.y,24,8.5,0,0,7); ctx.fill();
+  ctx.fillStyle='#2a1a0e';
+  ctx.beginPath(); ctx.ellipse(HOLE.x,HOLE.y+1,16,5,0,0,7); ctx.fill();
+}
+/* 紫色Q版小蚂蚁（含背上方块堆） */
+function drawAnt(a){
+  if(a.scale<=0)return;
+  const wob=a.state==='walk'?Math.sin(a.phase*.8+a.seed)*1.6:0;
+  const px=Math.cos(a.face+Math.PI/2)*wob, py=Math.sin(a.face+Math.PI/2)*wob;
+  const hop=a.state==='pickup'?Math.sin((1-a.t/0.12)*Math.PI)*3:0;
+  ctx.save();
+  ctx.globalAlpha=Math.min(1,a.scale*1.4);
+  ctx.translate(a.x+px,a.y+py-hop);
+  ctx.rotate(a.face);
+  ctx.scale(a.scale,a.scale);
+  // 腿（左右各三条，随相位摆动）
+  ctx.strokeStyle='#4c2a73'; ctx.lineWidth=1.7; ctx.lineCap='round';
+  for(let i=0;i<3;i++){
+    const bx=-4+i*3.6, sw=Math.sin(a.phase+i*2.1)*2.4;
+    ctx.beginPath(); ctx.moveTo(bx,1.5); ctx.lineTo(bx+2.6,6+sw); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(bx,-1.5); ctx.lineTo(bx+2.6,-6-sw); ctx.stroke();
+  }
+  ctx.lineWidth=1; ctx.strokeStyle='#5d2f9e';
+  // 腹部 + 花纹
+  ctx.fillStyle='#8d55e0';
+  ctx.beginPath(); ctx.ellipse(-4.5,0,6.8,5.2,0,0,7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.28)';
+  ctx.beginPath(); ctx.ellipse(-5.5,0,3.4,2.8,0,0,7); ctx.fill();
+  // 头
+  ctx.fillStyle='#9d6bf0';
+  ctx.beginPath(); ctx.ellipse(4.6,0,4.3,4,0,0,7); ctx.fill(); ctx.stroke();
+  // 触角
+  ctx.strokeStyle='#5d2f9e';
+  ctx.beginPath(); ctx.moveTo(6,-2); ctx.quadraticCurveTo(9,-4.5,10.5,-4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(6,2); ctx.quadraticCurveTo(9,4.5,10.5,4); ctx.stroke();
+  ctx.fillStyle='#ff8fb3';
+  ctx.beginPath(); ctx.arc(10.7,-4,1.1,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(10.7,4,1.1,0,7); ctx.fill();
+  // 眼睛与腮红
+  ctx.fillStyle='#fff';
+  ctx.beginPath(); ctx.arc(6.4,-1.6,1.7,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(6.4,1.6,1.7,0,7); ctx.fill();
+  ctx.fillStyle='#31214d';
+  ctx.beginPath(); ctx.arc(7,-1.6,.9,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(7,1.6,.9,0,7); ctx.fill();
+  ctx.fillStyle='rgba(255,120,160,.55)';
+  ctx.beginPath(); ctx.arc(4.2,-3.1,1.2,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(4.2,3.1,1.2,0,7); ctx.fill();
+  ctx.restore();
+  // 背上搬运的方块堆（屏幕对齐，画在蚂蚁上方，最多画4个+计数）
+  if(!a.stack.length)return;
+  ctx.save(); ctx.globalAlpha=Math.min(1,a.scale*1.4);
+  const show=Math.min(a.stack.length,4);
+  for(let i=0;i<show;i++){
+    drawMini(a.x+px+Math.sin(a.phase*.5+i)*1.2, a.y+py-13-i*8-hop, a.stack[i], 8*a.scale);
+  }
+  if(a.stack.length>4){
+    const ty=a.y+py-13-show*8-6;
+    ctx.font='900 11px system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.lineWidth=3; ctx.strokeStyle='#fff'; ctx.strokeText('×'+a.stack.length,a.x+px,ty);
+    ctx.fillStyle='#5d2f9e'; ctx.fillText('×'+a.stack.length,a.x+px,ty);
+  }
+  ctx.restore();
+}
+/* 蚂蚁背上的迷你方块 */
+function drawMini(x,y,col,s){
+  if(s<=0.5)return;
+  const p=PALETTE[col];
+  rr(x-s/2,y-s/2,s,s,2); ctx.fillStyle=p.c; ctx.fill();
+  ctx.globalAlpha*=1;
+  rr(x-s/2,y-s/2,s,s,2); ctx.strokeStyle=p.d; ctx.lineWidth=1; ctx.stroke();
+  ctx.fillStyle=p.l; ctx.fillRect(x-s/2+1,y-s/2+1,s-2,2);
+}
+
+/* ==================== 轻提示 ==================== */
+let toastTimer=null;
+function toast(msg){
+  toastEl.textContent=msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toastEl.classList.remove('show'),1500);
+}
+
+/* ==================== 功能按钮 ==================== */
+btnShuffle.addEventListener('click',()=>{ // 重排：重新随机生成按钮池
+  genPool();
+  btnShuffle.classList.remove('pulse');
+  toast('已重排蚂蚁小队！');
+  beep(600,.06,'square',.04);
+});
+btnSpeed.addEventListener('click',()=>{   // 3倍速开关
+  speedMult=speedMult===1?3:1;
+  btnSpeed.classList.toggle('on',speedMult===3);
+  speedState.textContent=speedMult===3?'开':'关';
+  beep(500,.06,'triangle',.04);
+  toast(speedMult===3?'3倍速已开启，蚂蚁起飞！':'已恢复正常速度');
+});
+document.getElementById('btnGear').addEventListener('click',()=>{ // 重新开始本关
+  resetLevel();
+  toast('已重新开始本关');
+  beep(400,.08,'triangle',.04);
+});
+document.getElementById('btnAgain').addEventListener('click',()=>{ resetLevel(); });
+document.getElementById('btnNext').addEventListener('click',()=>{  // 下一关：随机生成新像素画
+  levelIdx++;
+  levelData=randomLevel(15,16);
+  resetLevel();
+  toast('第 '+levelIdx+' 关 开始！');
+});
+
+/* ==================== 主循环 ==================== */
+function updateAnts(sdt){
+  for(const a of ants)stepAnt(a,sdt);
+  for(let i=ants.length-1;i>=0;i--)if(ants[i].dead)ants.splice(i,1);
+}
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(.05,(now-last)/1000); last=now;
+  const sdt=dt*speedMult;   // 倍速作用于所有动画时间
+  updateAnts(sdt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* ==================== 启动 ==================== */
+fitDPR();
+window.addEventListener('resize',fitDPR);
+resetLevel();
+requestAnimationFrame(loop);
+setTimeout(()=>toast('点击下方色块按钮，派出蚂蚁小队！'),400);
+</script>
+</body>
+</html>

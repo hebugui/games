@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家庭物品位置备忘</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --primary: #4f6ef7;
+    --primary-dark: #3b57d6;
+    --text: #1f2430;
+    --muted: #8a91a0;
+    --border: #e6e8ee;
+    --danger: #e5484d;
+    --tag-bg: #eef1ff;
+    --tag-text: #4f6ef7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 20px; }
+  .logo {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 10px;
+    background: linear-gradient(135deg, #6f8cff, #4f6ef7);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(79,110,247,0.35);
+  }
+  .logo svg { width: 38px; height: 38px; }
+  header h1 { font-size: 22px; font-weight: 700; }
+  header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 16px;
+  }
+
+  .search-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .search-bar input {
+    flex: 1;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    outline: none;
+  }
+  .search-bar input:focus { border-color: var(--primary); }
+  .search-bar button {
+    padding: 0 18px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .search-bar button:hover { background: var(--primary-dark); }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .form-grid .full { grid-column: 1 / -1; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .field input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    font-size: 14px;
+    outline: none;
+  }
+  .field input:focus { border-color: var(--primary); }
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .btn {
+    flex: 1;
+    padding: 11px;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-ghost { background: #f0f2f5; color: var(--text); }
+
+  .list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .list-header h2 { font-size: 16px; }
+  .list-header span { color: var(--muted); font-size: 13px; }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .item:last-child { border-bottom: none; }
+  .item-main { flex: 1; min-width: 0; }
+  .item-name { font-size: 16px; font-weight: 600; }
+  .item-loc {
+    display: inline-block;
+    margin-top: 5px;
+    padding: 3px 10px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    border-radius: 20px;
+    font-size: 12px;
+  }
+  .item-note { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .item-ops { display: flex; gap: 6px; }
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    background: #f0f2f5;
+    color: var(--text);
+  }
+  .icon-btn.del { background: #fdecec; color: var(--danger); }
+  .icon-btn:hover { opacity: 0.8; }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 30px 0;
+    font-size: 14px;
+  }
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(31,36,48,0.92);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 21c-4.418 0-8-3.134-8-7 0-3.134 3.5-6.5 8-10 4.5 3.5 8 6.866 8 10 0 3.866-3.582 7-8 7z" fill="#ffffff"/>
+        <circle cx="12" cy="13.5" r="3" fill="#4f6ef7"/>
+        <circle cx="12" cy="13.5" r="1.1" fill="#ffffff"/>
+      </svg>
+    </div>
+    <h1>家庭物品位置备忘</h1>
+    <p>门禁钥匙、充电宝… 放哪了？一键查</p>
+  </header>
+
+  <div class="card">
+    <div class="search-bar">
+      <input id="searchInput" type="text" placeholder="搜物品或位置，如「钥匙」「冰箱」" />
+      <button onclick="doSearch()">搜索</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="form-grid">
+      <div class="field">
+        <label>物品名称 *</label>
+        <input id="nameInput" type="text" placeholder="如：门禁钥匙" />
+      </div>
+      <div class="field">
+        <label>存放位置 *</label>
+        <input id="locInput" type="text" placeholder="如：冰箱顶部" />
+      </div>
+      <div class="field full">
+        <label>备注（可选）</label>
+        <input id="noteInput" type="text" placeholder="如：蓝色的那串" />
+      </div>
+    </div>
+    <div class="actions">
+      <button id="addBtn" class="btn btn-primary" onclick="addItem()">添加</button>
+      <button class="btn btn-ghost" onclick="clearForm()">清空</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="list-header">
+      <h2>物品清单</h2>
+      <span id="countText">0 项</span>
+    </div>
+    <div id="list"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_KEY = 'family_memory_items_v1';
+
+function loadItems() {
+  try {
+    return JSON.parse(localStorage.getItem(STORE_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveItems(items) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(items));
+}
+
+let editingId = null;
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+function render(filter) {
+  const list = document.getElementById('list');
+  const items = loadItems();
+  const keyword = (filter || '').trim().toLowerCase();
+  const shown = keyword
+    ? items.filter(it =>
+        it.name.toLowerCase().includes(keyword) ||
+        it.loc.toLowerCase().includes(keyword) ||
+        (it.note || '').toLowerCase().includes(keyword))
+    : items;
+
+  document.getElementById('countText').textContent = items.length + ' 项';
+
+  if (shown.length === 0) {
+    list.innerHTML = '<div class="empty">' +
+      (keyword ? '没有匹配的物品' : '还没有录入，先添加一个吧') +
+      '</div>';
+    return;
+  }
+
+  list.innerHTML = shown.map(it => `
+    <div class="item">
+      <div class="item-main">
+        <div class="item-name">${escapeHtml(it.name)}</div>
+        <span class="item-loc">📍 ${escapeHtml(it.loc)}</span>
+        ${it.note ? '<div class="item-note">' + escapeHtml(it.note) + '</div>' : ''}
+      </div>
+      <div class="item-ops">
+        <button class="icon-btn" title="编辑" onclick="editItem('${it.id}')">✏️</button>
+        <button class="icon-btn del" title="删除" onclick="delItem('${it.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function addItem() {
+  const name = document.getElementById('nameInput').value.trim();
+  const loc = document.getElementById('locInput').value.trim();
+  const note = document.getElementById('noteInput').value.trim();
+
+  if (!name || !loc) {
+    showToast('物品名称和位置都要填');
+    return;
+  }
+
+  const items = loadItems();
+  if (editingId) {
+    const idx = items.findIndex(it => it.id === editingId);
+    if (idx >= 0) {
+      items[idx] = { ...items[idx], name, loc, note };
+    }
+    editingId = null;
+    document.getElementById('addBtn').textContent = '添加';
+    showToast('已更新');
+  } else {
+    items.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, loc, note });
+    showToast('已添加');
+  }
+
+  saveItems(items);
+  clearForm();
+  render(document.getElementById('searchInput').value);
+}
+
+function clearForm() {
+  document.getElementById('nameInput').value = '';
+  document.getElementById('locInput').value = '';
+  document.getElementById('noteInput').value = '';
+  editingId = null;
+  document.getElementById('addBtn').textContent = '添加';
+}
+
+function editItem(id) {
+  const item = loadItems().find(it => it.id === id);
+  if (!item) return;
+  document.getElementById('nameInput').value = item.name;
+  document.getElementById('locInput').value = item.loc;
+  document.getElementById('noteInput').value = item.note || '';
+  editingId = id;
+  document.getElementById('addBtn').textContent = '保存修改';
+  document.getElementById('nameInput').focus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function delItem(id) {
+  if (!confirm('确定删除这条记录吗？')) return;
+  let items = loadItems();
+  items = items.filter(it => it.id !== id);
+  saveItems(items);
+  if (editingId === id) clearForm();
+  render(document.getElementById('searchInput').value);
+  showToast('已删除');
+}
+
+function doSearch() {
+  render(document.getElementById('searchInput').value);
+}
+
+document.getElementById('searchInput').addEventListener('input', doSearch);
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('locInput').focus();
+});
+document.getElementById('locInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addItem();
+});
+
+render();
+</script>
+</body>
+</html>

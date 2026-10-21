@@ -1,0 +1,27 @@
+#vt-subtitle-box {
+  position: fixed;
+  bottom: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  max-width: 90%;
+  padding: 10px 18px;
+  background: rgba(0, 0, 0, 0.78);
+  border-radius: 10px;
+  text-align: center;
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+#vt-subtitle-box .vt-src {
+  color: #d0d0d0;
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 2px;
+}
+#vt-subtitle-box .vt-dst {
+  color: #ffd60a;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+}

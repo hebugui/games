@@ -1,0 +1,23 @@
+# WorkBuddy 内部数据（记忆、应用追踪）
+.workbuddy/
+.wbapp_*.genie
+
+# 临时/检查文件
+_filelist.txt
+_gitcheck*.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# Android / Gradle
+family-memory-app/.gradle/
+family-memory-app/local.properties
+family-memory-app/app/build/
+*.iml
+.idea/
+
+# 系统
+.DS_Store
+Thumbs.db
+_gitlog.txt

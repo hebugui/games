@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 背景 -->
+    <path
+        android:fillColor="#4f6ef7"
+        android:pathData="M0,0 h108 v108 h-108 Z"/>
+    <!-- 定位水滴 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30 C40,30 30,40 30,52 C30,66 42,78 54,82 C66,78 78,66 78,52 C78,40 68,30 54,30 Z"/>
+    <!-- 内圆 -->
+    <path
+        android:fillColor="#4f6ef7"
+        android:pathData="M54,46 m-14,0 a14,14 0 1,1 28,0 a14,14 0 1,1 -28,0"/>
+    <!-- 中心点 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,46 m-5,0 a5,5 0 1,1 10,0 a5,5 0 1,1 -10,0"/>
+</vector>
